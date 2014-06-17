@@ -72,12 +72,12 @@ Factory.prototype.createEntity = function(x, y, z, vx, vy, vz) {
 Factory.prototype.createPlayer = function(camera) {
   var entity = this.game.ecs.createEntity('player');
 
-  entity.addComponent(new PositionComponent(0, 500, 0));
+  entity.addComponent(new PositionComponent(100, 500, 100));
   entity.addComponent(new VelocityComponent(0, 0, 0));
-  //entity.addComponent(new GravityComponent());
+  entity.addComponent(new GravityComponent());
   entity.addComponent(new InputComponent());
   entity.addComponent(new CameraComponent(camera));
-  entity.addComponent(new BoundingBoxComponent(100, 100, 100));
+  entity.addComponent(new BoundingBoxComponent(50, 100, 50));
 }
 
 Game.prototype.generateMap = function(width, length) {

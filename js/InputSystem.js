@@ -21,25 +21,36 @@ extend(InputSystem, ECS.System);
 InputSystem.prototype.update = function(entities) {
   for (var i = 0; i < entities.length; ++i) {
     var position = entities[i].components.PositionComponent.data;
+    var camera = entities[i].components.CameraComponent.data;
+
+    var direction = new THREE.Vector3(0, 0, -1);
+    direction.applyQuaternion(camera.camera.quaternion).normalize();
+    direction.multiplyScalar(10);
 
     if (this.moveForward) {
-      position.x += 5;
+      position.x += direction.x;
+      position.z += direction.z;
     }
     if (this.moveBackward) {
-      position.x -= 5;
+      position.x -= direction.x;
+      position.z -= direction.z;
     }
     if (this.moveLeft) {
-      position.z += 5;
+      direction = direction.cross(camera.camera.up);
+      position.x -= direction.x;
+      position.z -= direction.z;
     }
     if (this.moveRight) {
-      position.z -= 5;
+      direction = direction.cross(camera.camera.up);
+      position.x += direction.x;
+      position.z += direction.z;
     }
   }
 }
 
 InputSystem.prototype.keydown = function(event) {
   switch (event.keyCode) {
-    // W Key
+    //W Key
     case 87:
       this.moveForward = true;
       break;
@@ -51,12 +62,12 @@ InputSystem.prototype.keydown = function(event) {
 
     //A Key
     case 65:
-      this.moveRight = true;
+      this.moveLeft = true;
       break;
 
-    //F Key
+    //D Key
     case 68:
-      this.moveLeft = true;
+      this.moveRight = true;
       break;
 
     default:
@@ -66,7 +77,7 @@ InputSystem.prototype.keydown = function(event) {
 
 InputSystem.prototype.keyup = function(event) {
   switch (event.keyCode) {
-    // W Key
+    //W Key
     case 87:
       this.moveForward = false;
       break;
@@ -78,12 +89,12 @@ InputSystem.prototype.keyup = function(event) {
 
     //A Key
     case 65:
-      this.moveRight = false;
+      this.moveLeft = false;
       break;
 
-    //F Key
+    //D Key
     case 68:
-      this.moveLeft = false;
+      this.moveRight = false;
       break;
 
     default:

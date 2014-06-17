@@ -17,24 +17,7 @@ ECS.Main.prototype.addSystem = function(system) {
 
 ECS.Main.prototype.update = function(delta) {
   for (var system in this.systems) {
-    //Get entities with components
-    var entityList = [];
-
-    for (var j = 0; j < this.entities.length; ++j) {
-      var containsComponents = 0;
-      for (var systemComponent in this.systems[system].components) {
-        for (var entityComponent in this.entities[j].components) {
-          if (entityComponent === systemComponent) {
-            containsComponents++;
-            break;
-          }
-        }
-      }
-      if (containsComponents === Object.size(this.systems[system].components) &&
-          containsComponents !== 0) {
-        entityList.push(this.entities[j]);
-      }
-    }
+    var entityList = this.getEntitiesWithComponents(this.systems[system].components);
 
     if (typeof this.systems[system].begin === "function") {
       this.systems[system].begin();
@@ -46,6 +29,26 @@ ECS.Main.prototype.update = function(delta) {
       this.systems[system].end();
     }
   }
+}
+
+ECS.Main.prototype.getEntitiesWithComponents = function(components) {
+  var entityList = [];
+  for (var j = 0; j < this.entities.length; ++j) {
+    var containscomponents = 0;
+    for (var systemcomponent in components) {
+      for (var entitycomponent in this.entities[j].components) {
+        if (entitycomponent === systemcomponent) {
+          containscomponents++;
+          break;
+        }
+      }
+    }
+    if (containscomponents === Object.keys(components).length &&
+        containscomponents !== 0) {
+      entityList.push(this.entities[j]);
+    }
+  }
+  return entityList;
 }
 
 ECS.Main.prototype.createEntity = function(group) {
