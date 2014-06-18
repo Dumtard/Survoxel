@@ -11,10 +11,10 @@ GravitySystem.prototype.update = function(entities, delta) {
     var position = entities[i].components.PositionComponent.data;
     var velocity = entities[i].components.VelocityComponent.data;
 
-    if (velocity.y > -9.8) {
-      velocity.y -= 9.8 * delta;
+    if (velocity.y > -98) {
+      velocity.y -= 98 * delta;
     } else {
-      velocity.y = -9.8;
+      velocity.y = -98;
     }
   }
 }

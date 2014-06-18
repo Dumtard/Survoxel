@@ -11,6 +11,7 @@ function WorldRenderSystem(width, height, scene, camera) {
   this.renderer.setSize(width, height);
   document.body.appendChild(this.renderer.domElement);
 
+
   this.renderer.domElement.addEventListener('contextmenu', function (e) {
     e.preventDefault();
   }, false);
@@ -21,7 +22,6 @@ function WorldRenderSystem(width, height, scene, camera) {
 extend(WorldRenderSystem, ECS.System);
 
 WorldRenderSystem.prototype.update = function(entities) {
-  this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   this.renderer.render(this.scene, this.camera);
 }
 
