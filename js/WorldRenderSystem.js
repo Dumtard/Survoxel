@@ -1,7 +1,7 @@
 'use strict';
 
 function WorldRenderSystem(width, height, scene, camera) {
-  ECS.System.apply(this, [[RenderComponent, PositionComponent]]);
+  ECS.System.apply(this, [[RenderComponent]]);
 
   this.scene = scene;
   this.camera = camera;
@@ -10,7 +10,6 @@ function WorldRenderSystem(width, height, scene, camera) {
   this.renderer.setClearColor(0xffffff);
   this.renderer.setSize(width, height);
   document.body.appendChild(this.renderer.domElement);
-
 
   this.renderer.domElement.addEventListener('contextmenu', function (e) {
     e.preventDefault();

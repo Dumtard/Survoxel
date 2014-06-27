@@ -10,6 +10,7 @@ CameraSystem.prototype.update = function (entities) {
     var position = entities[i].components.PositionComponent.data;
     var camera = entities[i].components.CameraComponent.data;
 
-    camera.camera.position.set(position.x, position.y + 180, position.z);
+    camera.yawObject.position.set(position.x + 0.5, position.y + 1.7,
+        position.z + 0.5);
   }
 }

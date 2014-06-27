@@ -17,7 +17,8 @@ ECS.Main.prototype.addSystem = function(system) {
 
 ECS.Main.prototype.update = function(delta) {
   for (var system in this.systems) {
-    var entityList = this.getEntitiesWithComponents(this.systems[system].components);
+    var entityList = this.getEntitiesWithComponents(
+        this.systems[system].components);
 
     if (typeof this.systems[system].begin === "function") {
       this.systems[system].begin();
@@ -33,19 +34,22 @@ ECS.Main.prototype.update = function(delta) {
 
 ECS.Main.prototype.getEntitiesWithComponents = function(components) {
   var entityList = [];
-  for (var j = 0; j < this.entities.length; ++j) {
-    var containscomponents = 0;
-    for (var systemcomponent in components) {
-      for (var entitycomponent in this.entities[j].components) {
-        if (entitycomponent === systemcomponent) {
-          containscomponents++;
-          break;
-        }
+  for (var i = 0; i < this.entities.length; ++i) {
+    var containsComponents = false;
+    var systemComponents = Object.keys(components);
+    var entityComponents = Object.keys(this.entities[i].components);
+
+    for (var j = 0; j < systemComponents.length; ++j) {
+      if (entityComponents.indexOf(systemComponents[j]) === -1) {
+        containsComponents = false;
+        break;
+      } else {
+        containsComponents = true;
       }
     }
-    if (containscomponents === Object.keys(components).length &&
-        containscomponents !== 0) {
-      entityList.push(this.entities[j]);
+
+    if (containsComponents) {
+      entityList.push(this.entities[i]);
     }
   }
   return entityList;
