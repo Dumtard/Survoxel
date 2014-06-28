@@ -83,7 +83,7 @@ return function(volume, pos, dims) {
     return volume[i + dims[0] * (j + dims[1] * k)];
   }
 
-  var vertices = [], faces = [];
+  var vertices = [], faces = [], uvs = [];
 
   //Sweep over 3-axes
   for(var d = 0; d < 3; ++d) {
@@ -169,24 +169,80 @@ return function(volume, pos, dims) {
             x2[2] += pos[2];
 
             var vertex_count = vertices.length;
-            vertices.push([x2[0],
-                           x2[1],
-                           x2[2]]);
 
-            vertices.push([x2[0] + du[0],
-                           x2[1] + du[1],
-                           x2[2] + du[2]]);
+            vertices.push(new THREE.Vector3(
+                  x2[0],
+                  x2[1],
+                  x2[2]));
 
-            vertices.push([x2[0] + du[0] + dv[0],
-                           x2[1] + du[1] + dv[1],
-                           x2[2] + du[2] + dv[2]]);
+            vertices.push(new THREE.Vector3(
+                  x2[0] + du[0],
+                  x2[1] + du[1],
+                  x2[2] + du[2]));
 
-            vertices.push([x2[0]         + dv[0],
-                           x2[1]         + dv[1],
-                           x2[2]         + dv[2]]);
+            vertices.push(new THREE.Vector3(
+                x2[0] + du[0] + dv[0],
+                x2[1] + du[1] + dv[1],
+                x2[2] + du[2] + dv[2]));
 
-            faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
-            faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
+            vertices.push(new THREE.Vector3(
+                x2[0] + dv[0],
+                x2[1] + dv[1],
+                x2[2] + dv[2]));
+
+            var vector1 = new THREE.Vector3().
+              subVectors(vertices[vertex_count+1], vertices[vertex_count]);
+            var vector2 = new THREE.Vector3().
+              subVectors(vertices[vertex_count+1], vertices[vertex_count+2]);
+
+            var normal = new THREE.Vector3();
+            normal.crossVectors(vector1, vector2);
+
+            if (d === 0) {
+              if (normal.x < 0) {
+                faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
+                faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
+              } else if (normal.x > 0) {
+                faces.push([vertex_count+1, vertex_count+2, vertex_count+3, c]);
+                faces.push([vertex_count+1, vertex_count+3, vertex_count, c]);
+              }
+            }
+            if (d === 1) {
+              if (normal.y < 0) {
+                faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
+                faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
+              } else if (normal.y > 0) {
+                faces.push([vertex_count+1, vertex_count+2, vertex_count+3, c]);
+                faces.push([vertex_count+1, vertex_count+3, vertex_count, c]);
+              }
+            }
+            if (d === 2) {
+              if (normal.z > 0) {
+                faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
+                faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
+              } else if (normal.z < 0) {
+                faces.push([vertex_count+1, vertex_count+2, vertex_count+3, c]);
+                faces.push([vertex_count+1, vertex_count+3, vertex_count, c]);
+              }
+            }
+
+            //Read in texture coords based on c and x/y/z from somewhere so
+            //dont need a big if else tree
+            if (d === 1) {
+              uvs.push([new THREE.Vector2(1,0),
+                        new THREE.Vector2(1,0.5),
+                        new THREE.Vector2(0,0.5)]);
+              uvs.push([new THREE.Vector2(1,0),
+                        new THREE.Vector2(0,0.5),
+                        new THREE.Vector2(0,0)]);
+            } else {
+              uvs.push([new THREE.Vector2(1,0.5),
+                        new THREE.Vector2(1,1),
+                        new THREE.Vector2(0,1)]);
+              uvs.push([new THREE.Vector2(1,0.5),
+                        new THREE.Vector2(0,1),
+                        new THREE.Vector2(0,0.5)]);
+            }
 
             //Zero-out mask
             for(var l = 0; l < h; ++l) {
@@ -206,7 +262,7 @@ return function(volume, pos, dims) {
       }
     }
   }
-  return { vertices:vertices, faces:faces };
+  return { vertices:vertices, faces:faces, uvs:uvs };
 }
 })();
 
@@ -216,7 +272,7 @@ Factory.prototype.generateVoxels = function (result) {
 
   for(var i = 0; i < result.vertices.length; ++i) {
     var q = result.vertices[i];
-    geometry.vertices.push(new THREE.Vector3(q[0], q[1], q[2]));
+    geometry.vertices.push(q);
   }
   for(var i = 0; i < result.faces.length; ++i) {
     var q = result.faces[i];
@@ -227,13 +283,25 @@ Factory.prototype.generateVoxels = function (result) {
     geometry.faces.push(f);
   }
 
+  geometry.faceVertexUvs[0] = result.uvs.concat();
+
   geometry.computeFaceNormals();
 
   geometry.verticesNeedUpdate = true;
   geometry.elementsNeedUpdate = true;
+  geometry.uvsNeedUpdate = true;
 
-  var material = new THREE.MeshBasicMaterial({
-    vertexColors : true
+  //var material = new THREE.MeshBasicMaterial({
+  //  vertexColors : true
+  //});
+
+  var texture = THREE.ImageUtils.loadTexture('resources/texture.png');
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+  texture.repeat.set(1, 1);
+
+  var material = new THREE.MeshPhongMaterial({
+    map: texture
   });
 
   var surfaceMesh = new THREE.Mesh(geometry, material);
@@ -243,7 +311,7 @@ Factory.prototype.generateVoxels = function (result) {
     , wireframe : true
   });
   var wireMesh = new THREE.Mesh(geometry, wirematerial);
-  wireMesh.doubleSided = true;
+  wireMesh.doubleSided = false;
 
   this.game.scene.add(surfaceMesh);
   this.game.scene.add(wireMesh);

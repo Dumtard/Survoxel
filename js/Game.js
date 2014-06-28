@@ -44,7 +44,7 @@ Game.prototype.initialize = function() {
       this.scene, this.camera);
   this.ecs.addSystem(this.renderer);
 
-  var ambient = new THREE.AmbientLight(0x111111);
+  var ambient = new THREE.AmbientLight(0xffffff);
   this.scene.add(ambient);
 
   var directionalLight = new THREE.DirectionalLight(0xffffff);
