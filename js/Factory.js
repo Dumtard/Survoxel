@@ -83,7 +83,7 @@ return function(volume, pos, dims) {
     return volume[i + dims[0] * (j + dims[1] * k)];
   }
 
-  var vertices = [], faces = [], uvs = [];
+  var vertices = [], faces = [], uvs = [], mats = [];
 
   //Sweep over 3-axes
   for(var d = 0; d < 3; ++d) {
@@ -200,48 +200,78 @@ return function(volume, pos, dims) {
 
             if (d === 0) {
               if (normal.x < 0) {
+                uvs.push([new THREE.Vector2(dv[2],0),
+                          new THREE.Vector2(dv[2],du[1]),
+                          new THREE.Vector2(0,du[1])]);
+                uvs.push([new THREE.Vector2(dv[2],0),
+                          new THREE.Vector2(0,du[1]),
+                          new THREE.Vector2(0,0)]);
+
                 faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
                 faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
               } else if (normal.x > 0) {
+                uvs.push([new THREE.Vector2(du[2],0),
+                          new THREE.Vector2(du[2],dv[1]),
+                          new THREE.Vector2(0,dv[1])]);
+                uvs.push([new THREE.Vector2(du[2],0),
+                          new THREE.Vector2(0,dv[1]),
+                          new THREE.Vector2(0,0)]);
+
                 faces.push([vertex_count+1, vertex_count+2, vertex_count+3, c]);
                 faces.push([vertex_count+1, vertex_count+3, vertex_count, c]);
               }
+              mats.push(1);
+              mats.push(1);
             }
             if (d === 1) {
               if (normal.y < 0) {
+                uvs.push([new THREE.Vector2(dv[0],0),
+                          new THREE.Vector2(dv[0],du[2]),
+                          new THREE.Vector2(0,du[2])]);
+                uvs.push([new THREE.Vector2(dv[0],0),
+                          new THREE.Vector2(0,du[2]),
+                          new THREE.Vector2(0,0)]);
+
                 faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
                 faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
               } else if (normal.y > 0) {
+                uvs.push([new THREE.Vector2(dv[0],0),
+                          new THREE.Vector2(dv[0],du[2]),
+                          new THREE.Vector2(0,du[2])]);
+                uvs.push([new THREE.Vector2(dv[0],0),
+                          new THREE.Vector2(0,du[2]),
+                          new THREE.Vector2(0,0)]);
+
                 faces.push([vertex_count+1, vertex_count+2, vertex_count+3, c]);
                 faces.push([vertex_count+1, vertex_count+3, vertex_count, c]);
               }
+              mats.push(0);
+              mats.push(0);
             }
             if (d === 2) {
               if (normal.z > 0) {
+                uvs.push([new THREE.Vector2(dv[0], 0),
+                          new THREE.Vector2(dv[0], du[1]),
+                          new THREE.Vector2(0,     du[1])]);
+                uvs.push([new THREE.Vector2(dv[0], 0),
+                          new THREE.Vector2(0,     du[1]),
+                          new THREE.Vector2(0,     0)]);
+
                 faces.push([vertex_count, vertex_count+1, vertex_count+2, c]);
                 faces.push([vertex_count, vertex_count+2, vertex_count+3, c]);
               } else if (normal.z < 0) {
+                uvs.push([new THREE.Vector2(du[0], 0),
+                          new THREE.Vector2(du[0], dv[1]),
+                          new THREE.Vector2(0,     dv[1])]);
+                uvs.push([new THREE.Vector2(du[0], 0),
+                          new THREE.Vector2(0,     dv[1]),
+                          new THREE.Vector2(0,     0)]);
+
                 faces.push([vertex_count+1, vertex_count+2, vertex_count+3, c]);
                 faces.push([vertex_count+1, vertex_count+3, vertex_count, c]);
               }
-            }
-
-            //Read in texture coords based on c and x/y/z from somewhere so
-            //dont need a big if else tree
-            if (d === 1) {
-              uvs.push([new THREE.Vector2(1,0),
-                        new THREE.Vector2(1,0.5),
-                        new THREE.Vector2(0,0.5)]);
-              uvs.push([new THREE.Vector2(1,0),
-                        new THREE.Vector2(0,0.5),
-                        new THREE.Vector2(0,0)]);
-            } else {
-              uvs.push([new THREE.Vector2(1,0.5),
-                        new THREE.Vector2(1,1),
-                        new THREE.Vector2(0,1)]);
-              uvs.push([new THREE.Vector2(1,0.5),
-                        new THREE.Vector2(0,1),
-                        new THREE.Vector2(0,0.5)]);
+              mats.push(1);
+              mats.push(1);
             }
 
             //Zero-out mask
@@ -262,7 +292,7 @@ return function(volume, pos, dims) {
       }
     }
   }
-  return { vertices:vertices, faces:faces, uvs:uvs };
+  return { vertices:vertices, faces:faces, uvs:uvs, mats: mats };
 }
 })();
 
@@ -274,12 +304,14 @@ Factory.prototype.generateVoxels = function (result) {
     var q = result.vertices[i];
     geometry.vertices.push(q);
   }
+  console.log(result);
   for(var i = 0; i < result.faces.length; ++i) {
     var q = result.faces[i];
 
     var f = new THREE.Face3(q[0], q[1], q[2]);
     f.color = new THREE.Color(q[3]);
     f.vertexColors = [f.color, f.color, f.color];
+    f.materialIndex = result.mats[i];
     geometry.faces.push(f);
   }
 
@@ -291,20 +323,24 @@ Factory.prototype.generateVoxels = function (result) {
   geometry.elementsNeedUpdate = true;
   geometry.uvsNeedUpdate = true;
 
-  //var material = new THREE.MeshBasicMaterial({
-  //  vertexColors : true
-  //});
+  var grassTop = THREE.ImageUtils.loadTexture('resources/grass-top.png');
+  grassTop.minFilter = grassTop.magFilter = THREE.NearestFilter;
+  grassTop.wrapS = grassTop.wrapT = THREE.RepeatWrapping;
 
-  var texture = THREE.ImageUtils.loadTexture('resources/texture.png');
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  var grassSide = THREE.ImageUtils.loadTexture('resources/grass-side.png');
+  grassSide.minFilter = grassSide.magFilter = THREE.NearestFilter;
+  grassSide.wrapS = grassSide.wrapT = THREE.RepeatWrapping;
 
-  texture.repeat.set(1, 1);
+  var materials = [new THREE.MeshPhongMaterial({
+    map: grassTop 
+  }),
+  new THREE.MeshPhongMaterial({
+    map: grassSide
+  })];
 
-  var material = new THREE.MeshPhongMaterial({
-    map: texture
-  });
+  var surfaceMesh = new THREE.Mesh(geometry,
+      new THREE.MeshFaceMaterial(materials));
 
-  var surfaceMesh = new THREE.Mesh(geometry, material);
   surfaceMesh.doubleSided = false;
   var wirematerial = new THREE.MeshBasicMaterial({
       color : 0x000000
@@ -314,5 +350,5 @@ Factory.prototype.generateVoxels = function (result) {
   wireMesh.doubleSided = false;
 
   this.game.scene.add(surfaceMesh);
-  this.game.scene.add(wireMesh);
+  //this.game.scene.add(wireMesh);
 }

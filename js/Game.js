@@ -23,6 +23,8 @@ Game.prototype.initialize = function() {
 
   this.factory = new Factory(this);
 
+  this.scene.fog = new THREE.FogExp2(0x5fa5d8, 0.05);
+
   this.camera = new THREE.PerspectiveCamera(45, window.innerWidth /
                                            window.innerHeight, 0.1, 10000);
   this.camera.position.set(0, 0, 0);
@@ -49,13 +51,14 @@ Game.prototype.initialize = function() {
 
   var directionalLight = new THREE.DirectionalLight(0xffffff);
   directionalLight.position.set(1, 1, 1).normalize();
-  this.scene.add(directionalLight);
+  //this.scene.add(directionalLight);
 
   for (var i = -1; i < 2; ++i) {
     for (var j = -1; j < 2; ++j) {
-      var data = this.factory.generateChunk(i, 0, j);
+      //var data = this.factory.generateChunk(i, 0, j);
     }
   }
+  var data = this.factory.generateChunk(0, 0, 0);
 
   this.factory.createPlayer(this.camera);
 }
