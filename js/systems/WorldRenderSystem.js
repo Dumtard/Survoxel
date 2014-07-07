@@ -1,7 +1,7 @@
 'use strict';
 
 function WorldRenderSystem(width, height, scene, camera) {
-  ECS.System.apply(this, [[RenderComponent]]);
+  ECS.System.apply(this, ['RenderComponent']);
 
   this.scene = scene;
   this.camera = camera;

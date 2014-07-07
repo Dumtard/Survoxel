@@ -16,14 +16,14 @@ function Game(width, height) {
 }
 
 Game.prototype.initialize = function() {
-  this.ecs = new ECS.Main();
+  //this.ecs = new ECS.Main();
   this.scene = new THREE.Scene();
 
   this.clock = new THREE.Clock();
 
   this.factory = new Factory(this);
 
-  this.scene.fog = new THREE.FogExp2(0x5fa5d8, 0.05);
+  //this.scene.fog = new THREE.FogExp2(0x5fa5d8, 0.025);
 
   this.camera = new THREE.PerspectiveCamera(45, window.innerWidth /
                                            window.innerHeight, 0.1, 10000);
@@ -31,36 +31,27 @@ Game.prototype.initialize = function() {
   this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   this.inputSystem = new InputSystem(this.camera)
-  this.ecs.addSystem(this.inputSystem);
+  ECS.addSystem(this.inputSystem);
 
-  this.scene.add(this.inputSystem.object);
-  //this.scene.add(this.camera);
-
-  this.ecs.addSystem(new MovementSystem());
-  this.ecs.addSystem(new PositionSystem());
-  this.ecs.addSystem(new CameraSystem());
+  ECS.addSystem(new MovementSystem());
+  ECS.addSystem(new PositionSystem());
+  ECS.addSystem(new CameraSystem());
+  ECS.addSystem(new ChunkGenerationSystem(this.factory));
   //this.ecs.addSystem(new GravitySystem());
   //this.ecs.addSystem(new CollisionSystem());
 
   this.renderer = new WorldRenderSystem(this.canvasWidth, this.canvasHeight,
       this.scene, this.camera);
-  this.ecs.addSystem(this.renderer);
+  ECS.addSystem(this.renderer);
 
   var ambient = new THREE.AmbientLight(0xffffff);
   this.scene.add(ambient);
 
-  var directionalLight = new THREE.DirectionalLight(0xffffff);
-  directionalLight.position.set(1, 1, 1).normalize();
+  var directionalLight = new THREE.DirectionalLight(0x666666);
+  directionalLight.position.set(-1, -1, -1).normalize();
   //this.scene.add(directionalLight);
 
-  for (var i = -1; i < 2; ++i) {
-    for (var j = -1; j < 2; ++j) {
-      //var data = this.factory.generateChunk(i, 0, j);
-    }
-  }
-  var data = this.factory.generateChunk(0, 0, 0);
-
-  this.factory.createPlayer(this.camera);
+  var player = this.factory.createPlayer(this.camera);
 }
 
 Game.prototype.loop = function() {
@@ -68,5 +59,5 @@ Game.prototype.loop = function() {
 
   this.delta = this.clock.getDelta();
 
-  this.ecs.update(this.delta);
+  ECS.update(this.delta);
 }

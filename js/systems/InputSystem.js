@@ -1,8 +1,8 @@
 'use strict';
 
 function InputSystem(camera) {
-  ECS.System.apply(this, [[PositionComponent, InputComponent,
-      CameraComponent]]);
+  ECS.System.apply(this, ['PositionComponent', 'InputComponent',
+      'CameraComponent']);
 
   this.moveForward = false;
   this.moveBackward = false;
@@ -30,8 +30,8 @@ extend(InputSystem, ECS.System);
 
 InputSystem.prototype.update = function(entities, delta) {
   for (var i = 0; i < entities.length; ++i) {
-    var position = entities[i].components.PositionComponent.data;
-    var camera = entities[i].components.CameraComponent.data;
+    var position = entities[i].components.PositionComponent;
+    var camera = entities[i].components.CameraComponent;
 
     var direction = new THREE.Vector3(0, 0, -1);
     direction.applyQuaternion(camera.yawObject.quaternion).normalize();

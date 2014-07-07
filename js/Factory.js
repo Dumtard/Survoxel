@@ -1,9 +1,17 @@
 function Factory(game) {
   this.game = game;
+
+  this.chunk = {
+    x: undefined,
+    y: undefined,
+    z: undefined
+  };
+
+  this.loadedChunks = [];
 }
 
 Factory.prototype.createEntity = function(x, y, z, vx, vy, vz) {
-  var entity = this.game.ecs.createEntity('entity');
+  var entity = ECS.createEntity('entity');
 
   var renderComponent = new RenderComponent(scene,
       new THREE.BoxGeometry(200, 200, 200),
@@ -16,62 +24,73 @@ Factory.prototype.createEntity = function(x, y, z, vx, vy, vz) {
 }
 
 Factory.prototype.createPlayer = function(camera) {
-  var entity = this.game.ecs.createEntity('player');
+  var entity = ECS.createEntity('player');
 
-  entity.addComponent(new PositionComponent(16, 30, 16));
-  entity.addComponent(new VelocityComponent(0, 0, 0));
-  entity.addComponent(new GravityComponent());
-  entity.addComponent(new InputComponent());
-  var cameraComponent = new CameraComponent(camera);
-  this.game.scene.add(cameraComponent.data.yawObject);
-  entity.addComponent(cameraComponent);
-  entity.addComponent(new BoundingBoxComponent(0.25, 1, 0.25));
+  entity.addComponent(['PositionComponent', {x: 16, y: 30, z: 16}]);
+  entity.addComponent(['VelocityComponent', {x: 0, y: 0, z: 0}]);
+  //entity.addComponent(['GravityComponent', {x: 0, y: 0, z: 0}]);
+  entity.addComponent(['InputComponent', {}]);
+  var pitchObject = new THREE.Object3D();
+  pitchObject.add(camera);
+  var yawObject = new THREE.Object3D();
+  yawObject.add(pitchObject);
+  this.game.scene.add(yawObject);
+  entity.addComponent(['CameraComponent', {camera: camera,
+    pitchObject: pitchObject, yawObject: yawObject}]);
+  //entity.addComponent(['BoundingBoxComponent', {x: 0, y: 0, z: 0}]);
+
+
+  //entity.addComponent(new PositionComponent(16, 30, 16));
+  //entity.addComponent(new VelocityComponent(0, 0, 0));
+  //entity.addComponent(new GravityComponent());
+  //entity.addComponent(new InputComponent());
+
+  //var cameraComponent = new CameraComponent(camera);
+  //this.game.scene.add(cameraComponent.data.yawObject);
+  //entity.addComponent(cameraComponent);
+
+  //entity.addComponent(new BoundingBoxComponent(0.25, 1, 0.25));
+
+  return entity;
 }
 
 Factory.prototype.generateChunk = function(x, y, z) {
-  var chunkSize = 32;
-  var data = this.makeVoxels([x * chunkSize, y * chunkSize, z * chunkSize],
-      [chunkSize, chunkSize, chunkSize]);
-
-  var result = this.greedyMesh(data.voxels, data.pos, data.dims);
-  this.generateVoxels(result);
-}
-
-Factory.prototype.makeVoxels = function(l, h) {
-  var simplex = new SimplexNoise();
-
-  var f = function(i,j,k) {
-    var h0 = 3.0 * Math.sin(Math.PI * i / 12.0 - Math.PI * k * 0.1) + 27;
-    if(j > h0+1) {
-      return 0;
-    }
-    if(h0 <= j) {
-      return 0x23dd31;
-    }
-    var h1 = 2.0 * Math.sin(Math.PI * i * 0.25 - Math.PI * k * 0.3) + 20;
-    if(h1 <= j) {
-      return 0x964B00;
-    }
-    if(2 < j) {
-      return Math.random() < 0.1 ? 0x222222 : 0xaaaaaa;
-    }
-    return 0xff0000;
+  if (this.chunk.x === x && this.chunk.y === y && this.chunk.z === z) {
+    return;
+  } else {
+    this.chunk.x = x;
+    this.chunk.y = y;
+    this.chunk.z = z;
   }
 
-  var v = new Int32Array(h[0]*h[1]*h[2])
-    , n = 0;
+  for (var x = this.chunk.x-1; x <= this.chunk.x+1; ++x) {
+    for (var y = this.chunk.y-1; y <= this.chunk.y+1; ++y) {
+      for (var z = this.chunk.z-1; z <= this.chunk.z+1; ++z) {
+        var loaded = false;
 
-  for (var z = l[2]; z < l[2] + h[2]; ++z) {
-    for (var y = l[1]; y < l[1] + h[1]; ++y) {
-      for (var x = l[0]; x < l[0] + h[0]; ++x, ++n) {
-        //v[n] = 0x23dd31;
-        v[n] = f(x, y, z);
-        //v[n] = simplex.noise3D(x, y, z) * 0xffffff;
+        for (var i = 0; i < this.loadedChunks.length; ++i) {
+          if (this.loadedChunks[i].x === x &&
+              this.loadedChunks[i].y === y &&
+              this.loadedChunks[i].z === z) {
+            loaded = true;
+            break;
+          }
+        }
+        if(loaded) {
+          break;
+        } else {
+          var worker = new Worker('js/TerrainGeneration.js');
+
+          worker.onmessage = function(e) {
+            var result = this.greedyMesh(e.data.voxels, e.data.pos, e.data.dims);
+            this.generateVoxels(result);
+          }.bind(this);
+
+          worker.postMessage({x: x, y: y, z: z});
+        }
       }
     }
   }
-
-  return {voxels: v, pos: l, dims: h};
 }
 
 Factory.prototype.greedyMesh = (function() {
@@ -304,7 +323,7 @@ Factory.prototype.generateVoxels = function (result) {
     var q = result.vertices[i];
     geometry.vertices.push(q);
   }
-  console.log(result);
+
   for(var i = 0; i < result.faces.length; ++i) {
     var q = result.faces[i];
 
@@ -323,16 +342,16 @@ Factory.prototype.generateVoxels = function (result) {
   geometry.elementsNeedUpdate = true;
   geometry.uvsNeedUpdate = true;
 
-  var grassTop = THREE.ImageUtils.loadTexture('resources/grass-top.png');
+  var grassTop = THREE.ImageUtils.loadTexture('resources/tiles/grass/top.png');
   grassTop.minFilter = grassTop.magFilter = THREE.NearestFilter;
   grassTop.wrapS = grassTop.wrapT = THREE.RepeatWrapping;
 
-  var grassSide = THREE.ImageUtils.loadTexture('resources/grass-side.png');
+  var grassSide = THREE.ImageUtils.loadTexture('resources/tiles/grass/side.png');
   grassSide.minFilter = grassSide.magFilter = THREE.NearestFilter;
   grassSide.wrapS = grassSide.wrapT = THREE.RepeatWrapping;
 
   var materials = [new THREE.MeshPhongMaterial({
-    map: grassTop 
+    map: grassTop
   }),
   new THREE.MeshPhongMaterial({
     map: grassSide
@@ -352,3 +371,4 @@ Factory.prototype.generateVoxels = function (result) {
   this.game.scene.add(surfaceMesh);
   //this.game.scene.add(wireMesh);
 }
+
